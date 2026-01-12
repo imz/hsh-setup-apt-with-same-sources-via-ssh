@@ -14,13 +14,14 @@ case "$1" in
 	readonly UPDATE=
 	;;
 esac
-readonly HSHDIR="$1"; shift
+hshdir="$(eval "$(hsh --printenv "$@")" && echo "$workdir")"
+readonly hshdir
 
 MY="$(dirname -- "$(realpath -- "$0")")"
 readonly MY
 set -x
 
-hsh-install "$HSHDIR" -- apt
+hsh-install "$@" -- apt
 
 readonly FIELD_RE_FMT='[[:blank:]]*%s[[:blank:]]+'
 printf -v TYPE_RE "$FIELD_RE_FMT" '[^[:blank:]]+'
@@ -29,15 +30,15 @@ printf -v SIG_RE "$FIELD_RE_FMT" '\[[^]]*\]'
 readonly SIG_RE
 # We process the only sources.list filled out by mkaptbox.
 # We don't honor comments (i.e., edit URIs inside them, too).
-<"$HSHDIR"/aptbox/etc/apt/sources.list \
+<"$hshdir"/aptbox/etc/apt/sources.list \
  sed -Ee "s,^($TYPE_RE($SIG_RE)?)file:/,\1ssh://localhost/," \
-    | "$MY"/hsh-write --rooter "$HSHDIR" -- /etc/apt/sources.list
+    | "$MY"/hsh-write --rooter "$@" -- /etc/apt/sources.list
 
 # Note that any /etc/apt/sources.list.d/* are not affected.
 
 [ -n "$UPDATE" ] || exit 0
 
 share_network=1 \
-	     hsh-run --rooter "$HSHDIR" \
+	     hsh-run --rooter "$@" \
 	     -- apt-get update \
 	     </dev/null
